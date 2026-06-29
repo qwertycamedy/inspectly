@@ -34,6 +34,14 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Inspectly uses your photos as evidence for inspection findings.",
+          "cameraPermission": "Inspectly uses your camera to document inspection findings.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

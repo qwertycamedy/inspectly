@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -9,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 import { Screen } from "@/components/ui";
 import { useInspectionStore } from "@/features/inspections/inspection-store";
@@ -16,6 +19,7 @@ import { useInspectionStore } from "@/features/inspections/inspection-store";
 import type {
   ChecklistAnswer,
   ChecklistItem,
+  IssuePhoto,
   IssuePriority,
 } from "@/features/inspections/types";
 
@@ -29,6 +33,11 @@ const answerOptions: Array<{
 ];
 
 const priorities: IssuePriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+
+type DraftPhoto = Pick<
+  IssuePhoto,
+  "localUri" | "width" | "height" | "mimeType"
+>;
 
 export default function ChecklistScreen() {
   const { id } = useLocalSearchParams<{
@@ -51,11 +60,22 @@ export default function ChecklistScreen() {
 
   const createIssue = useInspectionStore((state) => state.createIssue);
 
+  const issuePhotosByIssue = useInspectionStore(
+    (state) => state.issuePhotosByIssue,
+  );
+
+  const addIssuePhoto = useInspectionStore((state) => state.addIssuePhoto);
+
+  const removeIssuePhoto = useInspectionStore(
+    (state) => state.removeIssuePhoto,
+  );
+
   const [activeSectionId, setActiveSectionId] = useState("");
   const [issueItem, setIssueItem] = useState<ChecklistItem | null>(null);
   const [issueDescription, setIssueDescription] = useState("");
   const [issuePriority, setIssuePriority] = useState<IssuePriority>("MEDIUM");
   const [issueError, setIssueError] = useState("");
+  const [draftPhotos, setDraftPhotos] = useState<DraftPhoto[]>([]);
 
   useEffect(() => {
     if (!activeSectionId && sections[0]) {
@@ -77,6 +97,14 @@ export default function ChecklistScreen() {
       sections.find((section) => section.id === activeSectionId) ?? sections[0],
     [activeSectionId, sections],
   );
+
+  const currentIssue = issueItem
+    ? issues.find((issue) => issue.checklistItemId === issueItem.id)
+    : undefined;
+
+  const savedPhotos = currentIssue
+    ? (issuePhotosByIssue[currentIssue.id] ?? [])
+    : [];
 
   if (!inspection || !activeSection) {
     return (
@@ -121,6 +149,7 @@ export default function ChecklistScreen() {
       (issue) => issue.checklistItemId === item.id,
     );
 
+    setDraftPhotos([]);
     setIssueItem(item);
     setIssueDescription(existingIssue?.description ?? item.comment ?? "");
     setIssuePriority(existingIssue?.priority ?? "MEDIUM");
@@ -132,6 +161,84 @@ export default function ChecklistScreen() {
     setIssueDescription("");
     setIssuePriority("MEDIUM");
     setIssueError("");
+    setDraftPhotos([]);
+  }
+
+  async function pickEvidencePhoto(source: "camera" | "library") {
+    try {
+      if (source === "camera") {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+
+        if (!permission.granted) {
+          Alert.alert(
+            "Camera permission required",
+            "Allow camera access to capture photo evidence for this issue.",
+          );
+          return;
+        }
+      }
+
+      const result =
+        source === "camera"
+          ? await ImagePicker.launchCameraAsync({
+              mediaTypes: ["images"],
+              allowsEditing: false,
+              quality: 0.7,
+              cameraType: ImagePicker.CameraType.back,
+            })
+          : await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ["images"],
+              allowsEditing: false,
+              allowsMultipleSelection: true,
+              selectionLimit: 5,
+              quality: 0.7,
+            });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const photos: DraftPhoto[] = result.assets.map((asset) => ({
+        localUri: asset.uri,
+        width: asset.width,
+        height: asset.height,
+        mimeType: asset.mimeType ?? null,
+      }));
+
+      setDraftPhotos((currentPhotos) =>
+        [...currentPhotos, ...photos].slice(0, 5),
+      );
+    } catch {
+      Alert.alert(
+        "Could not add photo",
+        "Please try again or choose another image.",
+      );
+    }
+  }
+
+  function openPhotoPicker() {
+    Alert.alert(
+      "Add photo evidence",
+      "Choose where to add the inspection photo from.",
+      [
+        {
+          text: "Take photo",
+          onPress: () => {
+            void pickEvidencePhoto("camera");
+          },
+        },
+        {
+          text: "Photo library",
+          onPress: () => {
+            void pickEvidencePhoto("library");
+          },
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ],
+    );
   }
 
   function saveIssue() {
@@ -146,12 +253,24 @@ export default function ChecklistScreen() {
       return;
     }
 
-    createIssue({
+    const issueId = createIssue({
       inspectionId: inspection.id,
       checklistItemId: issueItem.id,
       title: issueItem.title,
       description: issueDescription.trim(),
       priority: issuePriority,
+    });
+
+    draftPhotos.forEach((photo) => {
+      addIssuePhoto({
+        inspectionId: inspection.id,
+        issueId,
+        checklistItemId: issueItem.id,
+        localUri: photo.localUri,
+        width: photo.width,
+        height: photo.height,
+        mimeType: photo.mimeType,
+      });
     });
 
     closeIssueModal();
@@ -397,6 +516,68 @@ export default function ChecklistScreen() {
               style={styles.textarea}
               textAlignVertical="top"
             />
+
+            <Text style={styles.inputLabel}>
+              Photo evidence ({savedPhotos.length + draftPhotos.length}/5)
+            </Text>
+
+            <View style={styles.photoGrid}>
+              {savedPhotos.map((photo) => (
+                <View key={photo.id} style={styles.photoTile}>
+                  <Image
+                    source={{ uri: photo.localUri }}
+                    style={styles.photoPreview}
+                  />
+
+                  <Pressable
+                    onPress={() => removeIssuePhoto(photo.issueId, photo.id)}
+                    style={styles.removePhotoButton}
+                  >
+                    <Text style={styles.removePhotoText}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+
+              {draftPhotos.map((photo, index) => (
+                <View
+                  key={`${photo.localUri}-${index}`}
+                  style={styles.photoTile}
+                >
+                  <Image
+                    source={{ uri: photo.localUri }}
+                    style={styles.photoPreview}
+                  />
+
+                  <Pressable
+                    onPress={() => {
+                      setDraftPhotos((currentPhotos) =>
+                        currentPhotos.filter(
+                          (_, currentIndex) => currentIndex !== index,
+                        ),
+                      );
+                    }}
+                    style={styles.removePhotoButton}
+                  >
+                    <Text style={styles.removePhotoText}>×</Text>
+                  </Pressable>
+                </View>
+              ))}
+
+              {savedPhotos.length + draftPhotos.length < 5 ? (
+                <Pressable
+                  onPress={openPhotoPicker}
+                  style={styles.addPhotoButton}
+                >
+                  <Text style={styles.addPhotoIcon}>＋</Text>
+                  <Text style={styles.addPhotoText}>Add photo</Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <Text style={styles.photoHint}>
+              Critical issues require at least one photo before report
+              submission.
+            </Text>
 
             {issueError ? (
               <Text style={styles.issueError}>{issueError}</Text>
@@ -807,6 +988,69 @@ const styles = StyleSheet.create({
     marginTop: 9,
     minHeight: 112,
     padding: 13,
+  },
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10,
+  },
+  photoTile: {
+    height: 78,
+    position: "relative",
+    width: 78,
+  },
+  photoPreview: {
+    borderRadius: 12,
+    height: "100%",
+    width: "100%",
+  },
+  removePhotoButton: {
+    alignItems: "center",
+    backgroundColor: "#172033",
+    borderColor: "#FFFFFF",
+    borderRadius: 10,
+    borderWidth: 2,
+    height: 22,
+    justifyContent: "center",
+    position: "absolute",
+    right: -7,
+    top: -7,
+    width: 22,
+  },
+  removePhotoText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    lineHeight: 18,
+    marginTop: -2,
+  },
+  addPhotoButton: {
+    alignItems: "center",
+    backgroundColor: "#F3F6FB",
+    borderColor: "#DCE3EE",
+    borderRadius: 12,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    height: 78,
+    justifyContent: "center",
+    width: 78,
+  },
+  addPhotoIcon: {
+    color: "#2E5BFF",
+    fontSize: 22,
+    lineHeight: 24,
+  },
+  addPhotoText: {
+    color: "#50627D",
+    fontSize: 10,
+    fontWeight: "800",
+    marginTop: 3,
+  },
+  photoHint: {
+    color: "#7B8799",
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 8,
   },
   issueError: {
     color: "#C3373B",

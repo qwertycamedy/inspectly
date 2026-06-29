@@ -70,3 +70,17 @@ export interface InspectionIssue {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface IssuePhoto {
+  id: string;
+  inspectionId: string;
+  issueId: string;
+  checklistItemId: string;
+
+  localUri: string;
+  width: number;
+  height: number;
+  mimeType: string | null;
+
+  createdAt: string;
+}
