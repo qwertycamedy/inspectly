@@ -1,6 +1,5 @@
 import { InspectionCard } from "@/components/shared";
 import { Screen } from "@/components/ui";
-import { inspections } from "@/features/inspections/mock-data";
 import { useMemo, useState } from "react";
 import {
   FlatList,
@@ -10,6 +9,7 @@ import {
   Pressable,
   ScrollView,
 } from "react-native";
+import { useInspectionStore } from "@/features/inspections/inspection-store";
 
 type FilterKey = "ALL" | "IN_PROGRESS" | "ASSIGNED" | "COMPLETED" | "SUBMITTED";
 
@@ -22,6 +22,7 @@ const filters: { label: string; value: FilterKey }[] = [
 ];
 
 export default function InspectionsScreen() {
+  const inspections = useInspectionStore((state) => state.inspections);
   const [activeFilter, setActiveFilter] = useState<FilterKey>("ALL");
 
   const filteredInspections = useMemo(() => {
@@ -32,7 +33,7 @@ export default function InspectionsScreen() {
     return inspections.filter(
       (inspection) => inspection.status === activeFilter,
     );
-  }, [activeFilter]);
+  }, [activeFilter, inspections]);
 
   return (
     <Screen>
@@ -76,6 +77,7 @@ export default function InspectionsScreen() {
 
       <FlatList
         data={filteredInspections}
+        extraData={inspections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
