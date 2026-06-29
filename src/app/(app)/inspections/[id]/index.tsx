@@ -111,6 +111,65 @@ export default function InspectionDetailsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Workspaces</Text>
+
+          <View style={styles.workspaceCard}>
+            <Pressable
+              onPress={() =>
+                router.push(`/inspections/${inspection.id}/checklist`)
+              }
+              style={styles.workspaceRow}
+            >
+              <View>
+                <Text style={styles.workspaceTitle}>Checklist</Text>
+                <Text style={styles.workspaceDescription}>
+                  Complete checks and record findings.
+                </Text>
+              </View>
+
+              <Text style={styles.workspaceArrow}>›</Text>
+            </Pressable>
+
+            <View style={styles.workspaceDivider} />
+
+            <Pressable
+              onPress={() =>
+                router.push(`/inspections/${inspection.id}/issues`)
+              }
+              style={styles.workspaceRow}
+            >
+              <View>
+                <Text style={styles.workspaceTitle}>Issues</Text>
+                <Text style={styles.workspaceDescription}>
+                  {inspection.issuesCount} finding
+                  {inspection.issuesCount === 1 ? "" : "s"} recorded.
+                </Text>
+              </View>
+
+              <Text style={styles.workspaceArrow}>›</Text>
+            </Pressable>
+
+            <View style={styles.workspaceDivider} />
+
+            <Pressable
+              onPress={() =>
+                router.push(`/inspections/${inspection.id}/report`)
+              }
+              style={styles.workspaceRow}
+            >
+              <View>
+                <Text style={styles.workspaceTitle}>Report review</Text>
+                <Text style={styles.workspaceDescription}>
+                  Validate and submit the final report.
+                </Text>
+              </View>
+
+              <Text style={styles.workspaceArrow}>›</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Inspection workflow</Text>
 
           <View style={styles.workflowCard}>
@@ -253,6 +312,7 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 18,
   },
+  
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -271,9 +331,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: 5,
   },
+
   critical: {
     color: "#FF969A",
   },
+
   progressTrack: {
     backgroundColor: "#3A4966",
     borderRadius: 999,
@@ -286,6 +348,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: "100%",
   },
+
   section: {
     marginTop: 26,
   },
@@ -295,6 +358,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginBottom: 10,
   },
+
   infoCard: {
     backgroundColor: "#FFFFFF",
     borderColor: "#E9EDF4",
@@ -322,6 +386,42 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textTransform: "capitalize",
   },
+
+  workspaceCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E9EDF4",
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  workspaceRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 74,
+    paddingHorizontal: 15,
+  },
+  workspaceTitle: {
+    color: "#263248",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  workspaceDescription: {
+    color: "#788395",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  workspaceArrow: {
+    color: "#2E5BFF",
+    fontSize: 28,
+    lineHeight: 28,
+  },
+  workspaceDivider: {
+    backgroundColor: "#EEF1F5",
+    height: 1,
+    marginLeft: 15,
+  },
+
   workflowCard: {
     backgroundColor: "#FFFFFF",
     borderColor: "#E9EDF4",
@@ -361,6 +461,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 3,
   },
+
   primaryButton: {
     alignItems: "center",
     backgroundColor: "#2E5BFF",
@@ -375,6 +476,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
   },
+
   notFoundTitle: {
     color: "#243047",
     fontSize: 20,

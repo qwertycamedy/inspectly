@@ -13,6 +13,7 @@ import type {
   InspectionIssue,
   IssuePriority,
 } from './types';
+import { validateInspection } from './inspection-validation';
 
 interface CreateIssuePayload {
   inspectionId: string;
@@ -36,6 +37,8 @@ interface InspectionStore {
   ) => void;
 
   createIssue: (payload: CreateIssuePayload) => void;
+
+  submitInspection: (inspectionId: string) => void;
 }
 
 const initialChecklists = Object.fromEntries(
@@ -240,4 +243,31 @@ export const useInspectionStore = create<InspectionStore>()((set) => ({
       };
     });
   },
+
+  submitInspection: (inspectionId) => {
+  set((state) => {
+    const sections = state.checklists[inspectionId] ?? [];
+    const issues = state.issuesByInspection[inspectionId] ?? [];
+
+    const validation = validateInspection(sections, issues);
+
+    if (!validation.isReady) {
+      return state;
+    }
+
+    return {
+      inspections: state.inspections.map((inspection) => {
+        if (inspection.id !== inspectionId) {
+          return inspection;
+        }
+
+        return {
+          ...inspection,
+          status: 'SUBMITTED',
+          updatedAt: 'Just now',
+        };
+      }),
+    };
+  });
+},
 }));

@@ -318,13 +318,16 @@ export default function ChecklistScreen() {
           ))}
         </View>
 
-        <View style={styles.nextStepCard}>
-          <Text style={styles.nextStepTitle}>Next step</Text>
+        <Pressable
+          onPress={() => router.push(`/inspections/${inspection.id}/report`)}
+          style={styles.nextStepCard}
+        >
+          <Text style={styles.nextStepTitle}>Review report</Text>
           <Text style={styles.nextStepText}>
-            Complete all required items. Then we will add the report review
-            screen and submission validation.
+            Check validation results, review issues and submit the inspection
+            report.
           </Text>
-        </View>
+        </Pressable>
       </ScrollView>
 
       <Modal
