@@ -10,6 +10,8 @@ import {
   ScrollView,
 } from "react-native";
 import { useInspectionStore } from "@/features/inspections/inspection-store";
+import { router } from "expo-router";
+import { useAuthStore } from "@/features/auth/auth-store";
 
 type FilterKey = "ALL" | "IN_PROGRESS" | "ASSIGNED" | "COMPLETED" | "SUBMITTED";
 
@@ -23,7 +25,11 @@ const filters: { label: string; value: FilterKey }[] = [
 
 export default function InspectionsScreen() {
   const inspections = useInspectionStore((state) => state.inspections);
+  const { session } = useAuthStore();
+
   const [activeFilter, setActiveFilter] = useState<FilterKey>("ALL");
+
+  const avatar = session?.user.email ?? "U";
 
   const filteredInspections = useMemo(() => {
     if (activeFilter === "ALL") {
@@ -46,8 +52,11 @@ export default function InspectionsScreen() {
           </Text>
         </View>
 
-        <Pressable style={styles.avatar}>
-          <Text style={styles.avatarText}>QC</Text>
+        <Pressable
+          onPress={() => router.push("/profile")}
+          style={styles.avatar}
+        >
+          <Text style={styles.avatarText}>{avatar[0].toUpperCase()}</Text>
         </Pressable>
       </View>
 

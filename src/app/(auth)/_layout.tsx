@@ -3,22 +3,23 @@ import { Redirect, Stack } from "expo-router";
 import { FullScreenLoader } from "@/components/ui";
 import { useAuthStore } from "@/features/auth/auth-store";
 
-export default function AppLayout() {
-  const { session, isInitialized } = useAuthStore();
+export default function AuthLayout() {
+  const session = useAuthStore((state) => state.session);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
 
   if (!isInitialized) {
     return <FullScreenLoader />;
   }
 
-  if (!session) {
-    return <Redirect href="/sign-in" />;
+  if (session) {
+    return <Redirect href="/inspections" />;
   }
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: "slide_from_right",
+        animation: "fade",
       }}
     />
   );
